@@ -2,9 +2,8 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
-import plotly.express as px
 
-# ページ設定 (絵文字なし)
+# ページ設定
 st.set_page_config(page_title="収支表", layout="wide")
 
 st.title("収支表")
@@ -23,15 +22,15 @@ try:
 except Exception:
     df = pd.DataFrame(columns=['date', 'model_name', 'investment', 'recovery', 'balance'])
 
-# --- 入力フォーム (元の横並びレイアウトに戻す) ---
+# --- 入力エリア ---
 with st.form("input_form", clear_on_submit=True):
     col1, col2 = st.columns(2)
     with col1:
         date = st.date_input("日付", datetime.now())
         model_name = st.text_input("機種名")
     with col2:
-        investment = st.number_input("投資 (円)", min_value=0, step=1000)
-        recovery = st.number_input("回収 (円)", min_value=0, step=1000)
+        investment = st.number_input("投資 (円)", min_value=0, step=100)
+        recovery = st.number_input("回収 (円)", min_value=0, step=100)
     
     submit = st.form_submit_button("記録する")
 
@@ -51,30 +50,15 @@ if submit:
     else:
         st.error("機種名を入力してください")
 
-# --- データとグラフの表示 (タブを廃止し、縦に並べる) ---
+# --- 表示エリア ---
 if not df.empty:
-    st.subheader("収支データ")
-    
-    total_bal = int(df['balance'].sum())
-    total_inv = int(df['investment'].sum())
-    win_rate = (df['balance'] > 0).mean() * 100
+    # トータル収支の計算
+    total_balance = int(df['balance'].sum())
+    st.header(f"トータル収支: {total_balance:,} 円")
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("トータル収支", f"{total_bal:,} 円")
-    c2.metric("総投資", f"{total_inv:,} 円")
-    c3.metric("勝率", f"{win_rate:.1f} %")
-
-    # 履歴をそのまま表示
-    st.dataframe(df.sort_values('date', ascending=False), use_container_width=True)
-
-    st.subheader("分析グラフ")
-    
-    # グラフもそのまま表示
-    df_sorted = df.sort_values('date')
-    df_sorted['cumulative'] = df_sorted['balance'].cumsum()
-    fig = px.line(df_sorted, x='date', y='cumulative', title='収支の推移')
-    fig.add_hline(y=0, line_dash="dash", line_color="red")
-    st.plotly_chart(fig, use_container_width=True)
+    # 履歴の一覧表示
+    st.subheader("履歴一覧")
+    st.dataframe(df.sort_values('date', ascending=False), use_container_width=True, hide_index=True)
 
 else:
     st.info("データを入力してください")
